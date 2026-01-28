@@ -1,0 +1,15 @@
+torch
+torchvision
+torchaudio
+torch-geometric
+numpy
+scipy
+pandas
+matplotlib
+tqdm
+pot
+networkx
+pillow
+ipython
+fcd
+python-igraph

@@ -1,6 +1,6 @@
-# Graphex + Flow Matching for Graph Generation
+# Flowette: Flow Matching with Graphette Priors for Graph Generation
 
-* This is a Python3 implementation of **Graphex-based Flow Matching Graph Generative framework** for sparse/ dense graphs.
+* This is a Python3 implementation of a **Flow Matching-based graph generative framework with Graphette priors** for molecular and synthetic graphs.
 
 ### Prerequisites
 

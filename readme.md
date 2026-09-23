@@ -1,25 +1,42 @@
 # Flowette: Flow Matching with Graphette Priors for Graph Generation
 
-* This is a Python3 implementation of a **Flow Matching-based graph generative framework with Graphette priors** for molecular and synthetic graphs.
+This is a Python 3 implementation of Flowette with amortised FGW coupling.
 
-### Prerequisites
+## Installation
 
-* torch (>= 2.5.1)
-* torch_geometric (>= 2.7.0)
-* networkx (>= 3.2.1)
-* numpy (>=1.26.3)
-* scipy (>=1.16.3)
-* pandas (>=2.3.3)
-* matplotlib (>= 3.10.8)
-* pot (>= 0.9.6)
-* fcd (>= 1.2.2)
-* igraph (>= 1.0.0)
+Python 3.11 is recommended.
 
-### Environment setup
-
-```
-conda create --prefix=<local_project_path>/virtual_env/graphex_fm python=3.11.0
-source activate <local_project_path>/virtual_env/graphex_fm
-
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
+
+For CUDA, install the PyTorch and PyG builds appropriate for your CUDA version before installing the remaining requirements.
+
+## End-to-end run
+
+```bash
+python run_flowette.py \
+  --task guacamol \
+  --max-num-graphs None \
+  --ae-epochs 50 \
+  --fm-epochs 500 \
+  --fm-layers 5 \
+  --pairing-strategy periodic \
+  --pairing-refresh-every 2 \
+  --n-steps 100 \
+  --num-samples 1000 \
+  --force-train-fm
+```
+
+## Key implementation files
+
+- `fm_graphex/config.py`: dataset specifications vocabulary.
+- `fm_graphex/data/common_utils.py`: molecule-to-PyG conversion.
+- `fm_graphex/features/molecule_like_features.py`: flowette source features.
+- `fm_graphex/models/encoder.py`: GIN graph autoencoder.
+- `fm_graphex/flow_matching/training.py`: FGW pairing with one shared objective for all datasets.
+- `fm_graphex/flow_matching/sampling.py`: sampling and Euler integration.
+- `run_flowette.py`: command-line end-to-end runner.

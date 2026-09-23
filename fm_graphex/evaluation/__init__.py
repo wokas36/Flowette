@@ -8,7 +8,7 @@ from .metrics import (
     basic_graph_stats,
     graph_stats_from_mols,
     compute_ratio_statistic,
-    eval_and_log_ours,
+    eval_and_log,
 )
 
 __all__ = [
@@ -21,5 +21,5 @@ __all__ = [
     "basic_graph_stats",
     "graph_stats_from_mols",
     "compute_ratio_statistic",
-    "eval_and_log_ours",
+    "eval_and_log",
 ]

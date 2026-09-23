@@ -20,18 +20,24 @@ def _ensure_guacamol_download(root):
     root = root / "raw"
     root.mkdir(parents=True, exist_ok=True)
 
-    ds = load_dataset("jxie/guacamol") # splits: train/validation/test
-
     mapping = {
         "train": "guacamol_v1_train.smiles",
         "validation": "guacamol_v1_valid.smiles",
         "test": "guacamol_v1_test.smiles",
     }
+    paths = tuple(root / mapping[split] for split in ("train", "validation", "test"))
+    if all(path.exists() and path.stat().st_size > 0 for path in paths):
+        return paths
 
+    # Download only when one or more local split files are missing. This keeps
+    # the original dataset path unchanged and permits fully offline reruns once
+    # the files have been cached under ./dataset/GUACAMOL/raw.
+    ds = load_dataset("jxie/guacamol")
     for split, fname in mapping.items():
         path = root / fname
+        if path.exists() and path.stat().st_size > 0:
+            continue
         with path.open("w", encoding="utf-8") as f:
-            # each row has ds[split][ "text" ] = SMILES
             for smi in ds[split]["text"]:
                 if smi is None:
                     continue
@@ -40,7 +46,7 @@ def _ensure_guacamol_download(root):
                     f.write(smi + "\n")
         print(f"Wrote {split} -> {path} ({len(ds[split])} lines)")
 
-    return (root / mapping["train"], root / mapping["validation"], root / mapping["test"])
+    return paths
 
 
 def _read_smiles_file(path: str) -> List[str]:

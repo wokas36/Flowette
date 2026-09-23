@@ -16,10 +16,8 @@ def normalize_adjacency(A: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
 
 def relu(x):
     """
-    Sign passes through one side of the fold.
-    Velocity field remains locally directional.
-    FM behaves like a reflection, not a projection.
-    Folded ReLU preserves signed velocity information.
+    Sign passes through one side of the fold. Velocity field remains locally directional. 
+    FM behaves like a reflection, not a projection. Folded ReLU preserves signed velocity information.
     """
     return F.relu(x) + F.relu(-x)
 
@@ -34,8 +32,7 @@ def leaky_relu(x):
 def normalised_softplus(x):
     """
     Apply a normalized Softplus activation to enforce non-negativity while preserving relative edge strengths in 
-    soft adjacency matrices.
-    Renormalizing by the maximum value to keep all entries in [0, 1].
+    soft adjacency matrices. Renormalizing by the maximum value to keep all entries in [0, 1].
     """
     x = F.softplus(x)
     x = x / (x.max() + 1e-6)

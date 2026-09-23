@@ -221,51 +221,72 @@ def add_path_based_ring_closures(gr, ring_size_dict, max_nodes): # add_embedded_
     return result_graph
 
 
+def _ensure_exact_connected_node_count(gr, n):
+    """Return a connected simple igraph graph with exactly ``n`` vertices."""
+    if n <= 0:
+        return ig.Graph()
+
+    result = gr.copy()
+    if result.vcount() == 0:
+        result.add_vertices(n)
+        if n > 1:
+            result.add_edges([(i - 1, i) for i in range(1, n)])
+        return result
+
+    # Keep a connected induced subgraph if the source somehow exceeds n.
+    if result.vcount() > n:
+        order = result.bfs(0)[0][:n]
+        result = result.subgraph(order)
+
+    # Add missing vertices one at a time and attach each to an existing node.
+    # This prevents the n0 != n1 skip in flow matching and preserves a
+    # connected source topology for every requested target size.
+    while result.vcount() < n:
+        old_n = result.vcount()
+        result.add_vertex()
+        if old_n > 0:
+            anchor = int(np.random.randint(0, old_n))
+            result.add_edge(anchor, old_n)
+
+    result.simplify(multiple=True, loops=True)
+    if not result.is_connected() and result.vcount() > 1:
+        comps = result.connected_components()
+        reps = [next(iter(c)) for c in comps]
+        for a, b in zip(reps[:-1], reps[1:]):
+            if not result.are_adjacent(a, b):
+                result.add_edge(a, b)
+    return result
+
+
 def generate_graph_from_graphex(
     graphon,
     n,
     sparsity_factor,
     epsilon=1e-3,
     ring_proportion=0.1,
-    ring_sizes={5: 1, 6: 1},
-    embedproportion=0.1
+    ring_sizes=None,
+    embedproportion=0.1,
 ):
-    """
-    Generate a graph from a graphex by sampling a sparse graphon and adding rings,
-    ensuring the total number of nodes is <= n.
-    """
-    # Sample sparse graph from graphex
+    """Generate a connected graphex source graph with exactly ``n`` nodes."""
+    n = int(n)
+    ring_sizes = {} if ring_sizes is None else ring_sizes
+
     adj_matrix = sample_graphon_from_sparsified_graphon(
         graphon, n, sparsity_factor=sparsity_factor, epsilon=epsilon
     )
-
-    # Create igraph object from adjacency matrix
     gr = ig.Graph.Adjacency(adj_matrix.tolist(), mode="undirected")
 
-    # Keep the largest connected component
-    components = gr.connected_components()
-    largest_cc = max(components, key=len)
-    gr = gr.subgraph(largest_cc)
+    if gr.vcount() > 0 and gr.ecount() > 0:
+        components = gr.connected_components()
+        largest_cc = max(components, key=len)
+        gr = gr.subgraph(largest_cc)
+    elif gr.vcount() > 0:
+        # Keep one seed vertex; missing nodes are reattached below.
+        gr = gr.subgraph([0])
 
-    # If largest CC itself is too big, trim it to n nodes (induced subgraph).
-    if gr.vcount() > n:
-        keep = np.random.choice(gr.vcount(), size=n, replace=False)
-        gr = gr.subgraph(keep.tolist())
+    if ring_sizes:
+        gr = add_disjoint_ring_components(gr, ring_sizes, max_nodes=n)
+        gr = add_path_based_ring_closures(gr, ring_sizes, max_nodes=n)
 
-    # If no rings requested, just return (already <= n)
-    if not ring_sizes:
-        return gr
+    return _ensure_exact_connected_node_count(gr, n)
 
-    # Add specific rings under budget
-    gr1 = add_disjoint_ring_components(gr, ring_sizes, max_nodes=n)
-
-    # Add embedded rings under budget
-    final_graph = add_path_based_ring_closures(gr1, ring_sizes, max_nodes=n)
-
-    # Final safety check (should already hold)
-    if final_graph.vcount() > n:
-        # As a hard fallback, induce a subgraph on n nodes
-        keep = np.random.choice(final_graph.vcount(), size=n, replace=False)
-        final_graph = final_graph.subgraph(keep.tolist())
-
-    return final_graph

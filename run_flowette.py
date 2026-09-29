@@ -12,13 +12,26 @@ from rdkit import Chem, RDLogger
 import fm_graphex.config as cfg
 
 
+def optional_int(value):
+    """Parse an integer or the string 'None'."""
+    if value is None:
+        return None
+
+    value = str(value).strip()
+
+    if value.lower() in {"none", "null", ""}:
+        return None
+
+    return int(value)
+    
+
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         description="Flowette/Amortised FGW"
     )
     p.add_argument("--task", choices=["qm9", "zinc", "guacamol", "moses"], default="guacamol")
     p.add_argument("--seed", type=int, default=2)
-    p.add_argument("--max-num-graphs", type=int, default=None)
+    p.add_argument("--max-num-graphs", type=optional_int, default=None)
 
     p.add_argument("--ae-node-dim", type=int, default=64)
     p.add_argument("--ae-hidden-dim", type=int, default=128)
@@ -57,9 +70,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def apply_dataset_defaults(args: argparse.Namespace) -> argparse.Namespace:
-    large = args.task in {"guacamol"} # , "moses"
-    if args.max_num_graphs is None:
-        args.max_num_graphs = 5000
+    large = args.task in {"guacamol"}
     if args.ae_epochs is None:
         args.ae_epochs = 20 if large else 10
     if args.fm_epochs is None:

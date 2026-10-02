@@ -398,7 +398,7 @@ def train_flow_matching_graphex(
 
     print(
         "[FM objective] shared across all datasets: "
-        "velocity + endpoint + charge-aware valence + atom histogram "
+        "velocity + endpoint + valence + atom histogram "
         f"(beta_end={beta_end}, beta_valence={beta_valence}, "
         f"beta_atom_hist={beta_atom_hist})"
     )

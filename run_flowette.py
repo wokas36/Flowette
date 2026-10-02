@@ -129,7 +129,7 @@ def run(args: argparse.Namespace):
         charge_prior = {
             str(q): float(charge_prob[i]) for i, q in enumerate(cfg.FORMAL_CHARGES)
         }
-        print(f"[priors] formal_charge={charge_prior}")
+        # print(f"[priors] formal_charge={charge_prior}")
 
     train_cycles = load_cycle_counts(cfg.get_cycles_count_train_path())
     if len(train_cycles) < len(train_ds):
@@ -231,7 +231,7 @@ def run(args: argparse.Namespace):
         "mean_atoms_valid": atom_total / max(len(valid_mols), 1),
         "charged_atom_fraction": charged_atoms / max(atom_total, 1),
         "multi_fragment_smiles": sum("." in smi for smi in smiles),
-        "flow_loss": "velocity + endpoint + charge-aware-valence + atom-hist",
+        "flow_loss": "velocity + endpoint + valence + atom-hist",
     }
     diagnostics_path = os.path.join(
         args.out, f"{args.task}_{cfg.FEATURE_VERSION}_diagnostics.json"
@@ -245,7 +245,7 @@ def run(args: argparse.Namespace):
         from fm_graphex.evaluation.metrics import dataset_to_smiles_list, eval_and_log
         train_smiles = dataset_to_smiles_list(train_ds, args.task)
         test_smiles = dataset_to_smiles_list(test_ds, args.task)
-        _, metrics = eval_and_log(generated, (train_smiles, test_smiles), log=False)
+        _, metrics = eval_and_log(generated, (train_smiles, test_smiles), log=False, nspdk_complexity=6)
     return generated, metrics
 
 

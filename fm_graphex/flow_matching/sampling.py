@@ -29,7 +29,6 @@ def integrate_flow(
     E0: torch.Tensor,
     n_steps: int = 50,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Euler integration in continuous A/X/E space."""
     if n_steps <= 0:
         raise ValueError("n_steps must be positive")
     vnet.eval()
@@ -111,7 +110,6 @@ def threshold_adjacency(
     n_nodes: int,
     expected_edges: int,
 ) -> torch.Tensor:
-    """Exact OptionA global undirected top-k edge selection."""
     if n_nodes <= 1:
         return torch.zeros(max(n_nodes, 0), max(n_nodes, 0), device=A_soft.device)
 
@@ -146,47 +144,6 @@ def symmetrize_bond_logits(E_soft: torch.Tensor, task: str) -> torch.Tensor:
         )
         E[..., aromatic_idx] = -1e9
     return E
-
-
-def prune_by_valence(
-    A_bin: torch.Tensor,
-    atom_idx: torch.Tensor,
-    bond_idx: torch.Tensor,
-    charge_idx: Optional[torch.Tensor] = None,
-    task: str = "qm9",
-) -> torch.Tensor:
-    """Exact highest-bond-order pruning."""
-    A = A_bin.clone()
-    n = A.size(0)
-    max_val = atom_valence_limits(atom_idx, charge_idx, task).to(A.device)
-    bond_orders = cfg.BOND_ORDERS.to(A.device)
-
-    changed = True
-    while changed:
-        changed = False
-        val = torch.zeros(n, device=A.device)
-        edges = []
-        for i in range(n):
-            for j in range(i + 1, n):
-                if A[i, j] <= 0:
-                    continue
-                bt = min(int(bond_idx[i, j].detach().cpu()), len(bond_orders) - 1)
-                order = float(bond_orders[bt].detach().cpu())
-                val[i] += order
-                val[j] += order
-                edges.append((i, j, order))
-
-        for i in range(n):
-            if val[i] <= max_val[i] + 1e-6:
-                continue
-            incident = [(u, v, order) for u, v, order in edges if u == i or v == i]
-            if not incident:
-                continue
-            u, v, _ = sorted(incident, key=lambda item: item[2], reverse=True)[0]
-            A[u, v] = A[v, u] = 0.0
-            changed = True
-            break
-    return A
 
 
 def largest_connected_component(A_bin: torch.Tensor) -> Set[int]:
@@ -291,13 +248,60 @@ def fallback_single_bond_decode(
         return None
 
 
+def prune_by_valence(
+    A_bin: torch.Tensor,
+    atom_idx: torch.Tensor,
+    bond_idx: torch.Tensor,
+    n: float,
+    charge_idx: Optional[torch.Tensor] = None,
+    task: str = "qm9",
+    keep_lcc: bool = True,
+) -> torch.Tensor:
+    A = A_bin.clone()
+    n = A.size(0)
+    max_val = atom_valence_limits(atom_idx, charge_idx, task).to(A.device)
+    bond_orders = cfg.BOND_ORDERS.to(A.device)
+
+    changed = True
+    while changed:
+        changed = False
+        val = torch.zeros(n, device=A.device)
+        edges = []
+        for i in range(n):
+            for j in range(i + 1, n):
+                if A[i, j] <= 0:
+                    continue
+                bt = min(int(bond_idx[i, j].detach().cpu()), len(bond_orders) - 1)
+                order = float(bond_orders[bt].detach().cpu())
+                val[i] += order
+                val[j] += order
+                edges.append((i, j, order))
+
+        for i in range(n):
+            if val[i] <= max_val[i] + 1e-6:
+                continue
+            incident = [(u, v, order) for u, v, order in edges if u == i or v == i]
+            if not incident:
+                continue
+            u, v, _ = sorted(incident, key=lambda item: item[2], reverse=True)[0]
+            A[u, v] = A[v, u] = 0.0
+            changed = True
+            break
+
+    active = largest_connected_component(A) if keep_lcc else set(range(n))
+    mol = _build_typed_molecule(A, atom_idx, bond_idx, charge_idx, active, task)
+    if mol is not None:
+        return mol
+    return fallback_single_bond_decode(A, atom_idx, charge_idx, active, task)
+
+
 @torch.no_grad()
 def dense_to_mol(
     A_soft: torch.Tensor,
     X_soft: torch.Tensor,
     E_soft: torch.Tensor,
     expected_edges: Optional[int] = None,
-    keep_lcc: bool = True,
+    keep_lcc: bool = False,
 ) -> Optional[Chem.Mol]:
     n = X_soft.size(0)
     task = cfg.get_spec().name
@@ -306,7 +310,7 @@ def dense_to_mol(
     if X_soft.size(1) < cfg.node_feat_dim():
         raise ValueError(
             f"X has {X_soft.size(1)} channels; {task} requires {cfg.node_feat_dim()}. "
-            "Do not load pre-charge3 checkpoints for GuacaMol/MOSES."
+            "Do not load pre-charge checkpoints for GuacaMol/MOSES."
         )
 
     expected_edges = expected_num_edges(n, task) if expected_edges is None else int(expected_edges)
@@ -315,31 +319,9 @@ def dense_to_mol(
     atom_idx = X_soft[:, :cfg.NUM_ATOM_TYPES].argmax(dim=-1)
     charge_idx = formal_charge_indices_from_X(X_soft, task)
     bond_idx = E.argmax(dim=-1)
-    A_bin = prune_by_valence(A_bin, atom_idx, bond_idx, charge_idx, task)
+    A_bin = prune_by_valence(A_bin, atom_idx, bond_idx, n, charge_idx, task)
 
-    active = largest_connected_component(A_bin) if keep_lcc else set(range(n))
-    mol = _build_typed_molecule(A_bin, atom_idx, bond_idx, charge_idx, active, task)
-    if mol is not None:
-        return mol
-    return fallback_single_bond_decode(A_bin, atom_idx, charge_idx, active, task)
-
-
-def _threshold_prune(
-    A_soft: torch.Tensor,
-    X_soft: torch.Tensor,
-    E_soft: torch.Tensor,
-    threshold: float,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-    task = cfg.get_spec().name
-    n = X_soft.size(0)
-    A_score = torch.clamp(0.5 * (A_soft + A_soft.T), 0.0, 1.0)
-    A_bin = (A_score >= threshold).float()
-    A_bin.fill_diagonal_(0.0)
-    atom_idx = X_soft[:, :cfg.NUM_ATOM_TYPES].argmax(dim=-1)
-    charge_idx = formal_charge_indices_from_X(X_soft, task)
-    bond_idx = symmetrize_bond_logits(E_soft, task).argmax(dim=-1)
-    A_bin = prune_by_valence(A_bin, atom_idx, bond_idx, charge_idx, task)
-    return A_bin, atom_idx, bond_idx, charge_idx
+    return A_bin
 
 
 @torch.no_grad()

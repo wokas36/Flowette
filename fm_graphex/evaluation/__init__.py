@@ -11,6 +11,10 @@ from .metrics import (
     eval_and_log,
 )
 
+from .eaden import (
+    vectorize,
+)
+
 __all__ = [
     "mol_to_canonical_smiles",
     "dataset_to_smiles_list",
@@ -22,4 +26,5 @@ __all__ = [
     "graph_stats_from_mols",
     "compute_ratio_statistic",
     "eval_and_log",
+    "vectorize",
 ]

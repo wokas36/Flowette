@@ -675,7 +675,6 @@ def eval_and_log(mols: dict, smiles_pair: Tuple[List[str], List[str]], log: bool
             f"unique={percentage_unique:.3f}, "
             f"novel={novelty:.3f}, "
             f"vun={vun_score:.3f}, "
-            f"nspdk={nspdk:.6f}"
         )
 
         all_valid_mols[k] = (valid_mols)
@@ -685,7 +684,6 @@ def eval_and_log(mols: dict, smiles_pair: Tuple[List[str], List[str]], log: bool
             uniqueness=percentage_unique,
             novelty=novelty,
             vun=vun_score,
-            nspdk=nspdk,
         )
 
     return (all_valid_mols, all_metrics)

@@ -44,27 +44,49 @@ def _equal_size_assignment(
     noise_graphs: Sequence[Data],
     target_graphs: Sequence[Data],
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Hungarian assignment constrained to equal node counts.
+    """Hungarian matching independently within each node-count group.
 
-    The source node-count multiset is generated directly from the targets, so a
-    complete equal-size assignment must exist. Without this mask, Hungarian can
-    cross-match different sizes and the old loss code silently skips those
-    pairs, wasting much of a diverse GuacaMol/MOSES minibatch.
+    This implementation is shared by molecular and synthetic experiments. It
+    avoids passing a matrix containing infeasible full-inf rows/columns to
+    SciPy and makes the equal-size invariant explicit.
     """
-    cost = np.asarray(D, dtype=np.float64).copy()
-    for i, g0 in enumerate(noise_graphs):
-        for j, g1 in enumerate(target_graphs):
-            if int(g0.num_nodes) != int(g1.num_nodes):
-                cost[i, j] = np.inf
-    rows, cols = linear_sum_assignment(cost)
-    if not np.isfinite(cost[rows, cols]).all():
-        src_sizes = [int(g.num_nodes) for g in noise_graphs]
-        tgt_sizes = [int(g.num_nodes) for g in target_graphs]
-        raise RuntimeError(
-            "No complete equal-size FGW assignment exists. "
-            f"source sizes={src_sizes}, target sizes={tgt_sizes}."
+    from collections import defaultdict
+
+    D = np.asarray(D, dtype=np.float64)
+    if D.shape != (len(noise_graphs), len(target_graphs)):
+        raise ValueError(
+            f"FGW matrix shape {D.shape} does not match "
+            f"({len(noise_graphs)}, {len(target_graphs)})."
         )
-    return rows, cols
+
+    src_by_size = defaultdict(list)
+    tgt_by_size = defaultdict(list)
+    for i, g in enumerate(noise_graphs):
+        src_by_size[int(g.num_nodes)].append(i)
+    for j, g in enumerate(target_graphs):
+        tgt_by_size[int(g.num_nodes)].append(j)
+
+    src_counts = {n: len(v) for n, v in src_by_size.items()}
+    tgt_counts = {n: len(v) for n, v in tgt_by_size.items()}
+    if src_counts != tgt_counts:
+        raise RuntimeError(
+            "Noise/target node-count multisets do not match. "
+            f"source={src_counts}, target={tgt_counts}. "
+            "The source sampler must preserve each requested n."
+        )
+
+    rows_all, cols_all = [], []
+    for n in sorted(tgt_by_size):
+        src_ids = src_by_size[n]
+        tgt_ids = tgt_by_size[n]
+        sub = D[np.ix_(src_ids, tgt_ids)]
+        if not np.isfinite(sub).all():
+            raise RuntimeError(f"Non-finite FGW cost detected for node count n={n}.")
+        rr, cc = linear_sum_assignment(sub)
+        rows_all.extend(src_ids[int(r)] for r in rr)
+        cols_all.extend(tgt_ids[int(c)] for c in cc)
+
+    return np.asarray(rows_all, dtype=np.int64), np.asarray(cols_all, dtype=np.int64)
 
 
 class PairingCache:

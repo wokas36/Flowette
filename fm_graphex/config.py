@@ -16,7 +16,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # The three channels are categorical logits/one-hot entries, not a scalar.
 FORMAL_CHARGES: Tuple[int, ...] = (-1, 0, 1)
 NEUTRAL_CHARGE_IDX: int = FORMAL_CHARGES.index(0)
-FEATURE_VERSION = "flowette_amortized_v"
+FEATURE_VERSION = "amortized_flowette_1.0"
 
 @dataclass(frozen=True)
 class MolGraphSpec:
@@ -134,9 +134,6 @@ MOSES_SPEC = MolGraphSpec(
 
 _ACTIVE_SPEC = QM9_SPEC
 
-# Backward-compatible globals. They are refreshed by set_dataset(). Modules
-# that can be imported before set_dataset() should import this module as cfg
-# and read cfg.NUM_ATOM_TYPES at runtime rather than copying the value.
 ATOM_TYPES: List[str]
 Z_TO_TYPE: Dict[int, int]
 TYPE_TO_SYM: Dict[int, str]
@@ -260,6 +257,8 @@ def set_seed(seed: int = 42) -> None:
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
 
 def get_node_count_list(dataset: Sequence[Data]) -> List[int]:
@@ -303,7 +302,6 @@ def estimate_molecular_feature_probs(
 
 
 def estimate_atom_and_bond_probs(dataset: Sequence[Data]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Backward-compatible wrapper returning the original three values."""
     atom_prob, atom_z, bond_prob, _ = estimate_molecular_feature_probs(dataset)
     return atom_prob, atom_z, bond_prob
 
@@ -316,8 +314,6 @@ def estimate_edge_density(dataset: Sequence[Data]) -> float:
         if n <= 1:
             continue
         e = int(d.edge_index.shape[1])
-        # Processed molecular graphs are bidirectional. If a legacy graph is
-        # not, counting unique pairs still gives the correct undirected value.
         if e:
             pairs = {
                 tuple(sorted((int(d.edge_index[0, k]), int(d.edge_index[1, k]))))

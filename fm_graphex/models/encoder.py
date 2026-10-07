@@ -305,3 +305,72 @@ def train_autoencoder(
         print(f"[AE] Saved {dec_path}")
 
     return encoder, decoder, train_dataset, val_dataset, test_dataset, max_atoms
+
+
+class DenseGINEncoder(nn.Module):
+    """Dense GIN encoder used by the synthetic Flowette benchmarks.
+
+    The class lives in the shared ``models/encoder.py`` module so Ego, Tree and
+    SBM use the same encoder implementation. ``forward_dense`` matches the
+    synthetic notebooks, while ``forward`` provides the standard PyG signature
+    expected by ``fm_graphex.ot.fgw``.
+    """
+
+    def __init__(
+        self,
+        in_dim: int = 1,
+        hidden_dim: int = 64,
+        out_dim: int = 32,
+        num_layers: int = 3,
+        mlp_layers: int = 2,
+        train_eps: bool = True,
+        dropout: float = 0.0,
+        use_bn: bool = True,
+    ):
+        super().__init__()
+        self.num_layers = int(num_layers)
+        self.dropout = float(dropout)
+        self.lin_in = nn.Linear(in_dim, hidden_dim)
+        self.eps = nn.ParameterList()
+        self.mlps = nn.ModuleList()
+        self.bns = nn.ModuleList()
+
+        for _ in range(self.num_layers):
+            self.eps.append(nn.Parameter(torch.zeros(1), requires_grad=train_eps))
+            layers = []
+            dim = hidden_dim
+            for _ in range(max(0, mlp_layers - 1)):
+                layers.extend([nn.Linear(dim, hidden_dim), nn.ReLU()])
+                dim = hidden_dim
+            layers.append(nn.Linear(dim, hidden_dim))
+            self.mlps.append(nn.Sequential(*layers))
+            self.bns.append(nn.BatchNorm1d(hidden_dim) if use_bn else nn.Identity())
+
+        self.lin_out = nn.Linear(hidden_dim, out_dim)
+
+    def forward_dense(self, A: torch.Tensor, X: torch.Tensor) -> torch.Tensor:
+        h = F.relu(self.lin_in(X))
+        for k in range(self.num_layers):
+            m = A @ h
+            h = (1.0 + self.eps[k]) * h + m
+            h = self.mlps[k](h)
+            h = self.bns[k](h)
+            h = F.relu(h)
+            if self.dropout > 0:
+                h = F.dropout(h, p=self.dropout, training=self.training)
+        return self.lin_out(h)
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        edge_index: torch.Tensor,
+        edge_attr: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        n = int(x.size(0))
+        A = torch.zeros((n, n), dtype=x.dtype, device=x.device)
+        if edge_index is not None and edge_index.numel() > 0:
+            ei = edge_index.to(x.device)
+            A[ei[0], ei[1]] = 1.0
+            A = torch.maximum(A, A.T)
+        A.fill_diagonal_(0.0)
+        return self.forward_dense(A, x.float())

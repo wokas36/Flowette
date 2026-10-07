@@ -1,6 +1,6 @@
 # Flowette: Flow Matching with Graphette Priors for Graph Generation
 
-This is a Python 3 implementation of Flowette with amortised FGW coupling.
+This repository contains the official Python 3 implementation of Flowette with amortised Fused Gromov–Wasserstein (FGW) coupling.
 
 ```text
 Flowette/

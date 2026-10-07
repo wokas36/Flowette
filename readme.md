@@ -42,7 +42,9 @@ pip install -r requirements.txt
 
 For CUDA, install the PyTorch and PyG builds appropriate for your CUDA version before installing the remaining requirements.
 
-## End-to-end run
+## Molecular graph experiments
+
+We evaluate Flowette on **QM9, ZINC, MOSES, and GUACAMOL** molecular graph benchmarks.
 
 ```bash
 python run_flowette.py \
@@ -70,9 +72,7 @@ python run_flowette.py \
 
 ## Synthetic graph experiments
 
-The same project now supports the supplied **Ego-small, Tree, and SBM** experiments without duplicating the molecular Flowette core.
-
-Useful sampling options:
+We evaluate Flowette on **Ego-small, Tree, and SBM** synthetic graph benchmarks.
 
 ```bash
 python run_synthetic.py \
@@ -84,8 +84,6 @@ python run_synthetic.py \
 ```
 
 ### Synthetic-only files
-
-The notebook-specific code is factored into files parallel to the molecular structure:
 
 - `fm_graphex/data/synthetic.py`: SPECTRE-style Ego/Tree/SBM loading and graph conversion.
 - `fm_graphex/data/synthetic_graphex_noise.py`: Ego/Tree graphette priors and fitted SBM source prior.

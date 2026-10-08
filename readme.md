@@ -4,7 +4,7 @@ This repository contains the official Python 3 implementation of Flowette with a
 
 ```text
 Flowette/
-├── run_flowette.py
+├── run_molecule.py
 ├── run_synthetic.py
 ├── fm_graphex/
 │   ├── config.py
@@ -47,15 +47,15 @@ For CUDA, install the PyTorch and PyG builds appropriate for your CUDA version b
 We evaluate Flowette on **QM9, ZINC, MOSES, and GUACAMOL** molecular graph benchmarks.
 
 ```bash
-python run_flowette.py \
+python run_molecule.py \
   --task guacamol \
   --max-num-graphs None \
-  --ae-epochs 50 \
+  --ae-epochs 200 \
   --fm-epochs 500 \
   --fm-layers 5 \
-  --pairing-strategy periodic \
+  --pairing-strategy online \
   --pairing-refresh-every 2 \
-  --n-steps 100 \
+  --n-steps 200 \
   --num-samples 1000 \
   --force-train-fm
 ```

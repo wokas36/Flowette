@@ -588,7 +588,6 @@ def eval_and_log(mols: dict, smiles_pair: Tuple[List[str], List[str]], log: bool
                 f"unique={percentage_unique:.3f}, "
                 f"novel={novelty:.3f}, "
                 f"vun={vun_score:.3f}, "
-                f"nspdk={nspdk}"
             )
 
             continue

@@ -269,6 +269,8 @@ def train_autoencoder(
                 n = int(data.num_nodes)
                 if n <= 0:
                     continue
+                if str(task).lower() == "qm9" and n == 1 and max_num_graphs == None:
+                    continue
                 z = encoder(data.x, data.edge_index, data.edge_attr)
                 node_logits, edge_logits = decoder(z)
 

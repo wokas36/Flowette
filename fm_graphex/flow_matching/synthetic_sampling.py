@@ -96,7 +96,6 @@ def dense_to_pyg_graph(A_bin: torch.Tensor) -> Data:
 
 
 def keep_largest_connected_component(A_bin: torch.Tensor) -> torch.Tensor:
-    """Molecule-style LCC retention used by the current SBM notebook."""
     A = A_bin.detach().cpu()
     n = int(A.size(0))
     G = nx.Graph()
@@ -200,7 +199,7 @@ def generate_graphs_from_graphex_fm(
 
             A_bin = threshold_adjacency(A1, n_nodes=N, expected_edges=k)
 
-            if task == "sbm" and require_connected:
+            if task != "tree" and require_connected:
                 A_bin = keep_largest_connected_component(A_bin)
 
             g = dense_to_pyg_graph(A_bin)

@@ -72,7 +72,7 @@ def main() -> None:
         representation_roundtrip(task)
         charged_decoder(task)
     pruning_test()
-    print("All OptionA GuacaMol/MOSES smoke tests passed.")
+    print("All guacamol/moses smoke tests passed.")
 
 
 if __name__ == "__main__":

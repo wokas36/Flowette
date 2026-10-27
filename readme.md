@@ -44,7 +44,7 @@ For CUDA, install the PyTorch and PyG builds appropriate for your CUDA version b
 
 ## Molecular graph experiments
 
-We evaluate Flowette on **QM9, ZINC, MOSES, and GUACAMOL** molecular graph benchmarks.
+We evaluate Flowette on **ZINC, QM9, MOSES, and GUACAMOL** molecular graph benchmarks.
 
 ```bash
 python run_molecule.py \
@@ -68,7 +68,7 @@ python run_molecule.py \
 - `fm_graphex/models/encoder.py`: GIN graph autoencoder.
 - `fm_graphex/flow_matching/training.py`: FGW pairing with one shared objective for all datasets.
 - `fm_graphex/flow_matching/sampling.py`: sampling and Euler integration.
-- `run_flowette.py`: command-line end-to-end runner.
+- `run_molecule.py`: CLI main for ZINC, QM9, MOSES and GUACAMOL.
 
 ## Synthetic graph experiments
 
@@ -88,9 +88,9 @@ python run_synthetic.py \
 - `fm_graphex/data/synthetic.py`: SPECTRE-style Ego/Tree/SBM loading and graph conversion.
 - `fm_graphex/data/synthetic_graphex_noise.py`: Ego/Tree graphette priors and fitted SBM source prior.
 - `fm_graphex/flow_matching/synthetic_training.py`: synthetic velocity + endpoint objective; calls the shared FGW alignment utilities.
-- `fm_graphex/flow_matching/synthetic_sampling.py`: size-conditioned edge budgets and synthetic decoding; calls shared `integrate_flow`.
+- `fm_graphex/flow_matching/synthetic_sampling.py`: synthetic decoding; calls shared `integrate_flow`.
 - `fm_graphex/evaluation/synthetic_metrics.py`: Deg/Clus/Orb + VUN evaluation and graph visualisation.
-- `run_synthetic.py`: one CLI main for Ego-small, Tree, and SBM.
+- `run_synthetic.py`: CLI main for Ego-small, Tree, and SBM.
 
 
 ## Citation

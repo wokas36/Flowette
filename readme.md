@@ -66,7 +66,7 @@ python run_molecule.py \
 - `fm_graphex/data/common_utils.py`: molecule-to-PyG conversion.
 - `fm_graphex/features/molecule_like_features.py`: flowette source features.
 - `fm_graphex/models/encoder.py`: GIN graph autoencoder.
-- `fm_graphex/flow_matching/training.py`: FGW pairing with one shared objective for all datasets.
+- `fm_graphex/flow_matching/training.py`: FGW pairing with shared objective for all datasets.
 - `fm_graphex/flow_matching/sampling.py`: sampling and Euler integration.
 - `run_molecule.py`: CLI main for ZINC, QM9, MOSES and GUACAMOL.
 
@@ -86,7 +86,7 @@ python run_synthetic.py \
 ### Synthetic-only files
 
 - `fm_graphex/data/synthetic.py`: SPECTRE-style Ego/Tree/SBM loading and graph conversion.
-- `fm_graphex/data/synthetic_graphex_noise.py`: Ego/Tree graphette priors and fitted SBM source prior.
+- `fm_graphex/data/synthetic_graphex_noise.py`: Ego/Tree graphette priors and mixture of SBMs source prior.
 - `fm_graphex/flow_matching/synthetic_training.py`: synthetic velocity + endpoint objective; calls the shared FGW alignment utilities.
 - `fm_graphex/flow_matching/synthetic_sampling.py`: synthetic decoding; calls shared `integrate_flow`.
 - `fm_graphex/evaluation/synthetic_metrics.py`: Deg/Clus/Orb + VUN evaluation and graph visualisation.

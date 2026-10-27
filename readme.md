@@ -2,33 +2,6 @@
 
 This repository contains the official Python 3 implementation of Flowette with amortised Fused Gromov–Wasserstein (FGW) coupling.
 
-```text
-Flowette/
-├── run_molecule.py
-├── run_synthetic.py
-├── fm_graphex/
-│   ├── config.py
-│   ├── models/
-│   │   ├── encoder.py
-│   │   └── velocity_field.py
-│   ├── ot/
-│   │   └── fgw.py
-│   ├── data/
-│   │   ├── graphex_noise.py
-│   │   ├── synthetic.py
-│   │   └── synthetic_graphex_noise.py
-│   ├── flow_matching/
-│   │   ├── dense_graph.py
-│   │   ├── training.py
-│   │   ├── sampling.py
-│   │   ├── synthetic_training.py
-│   │   └── synthetic_sampling.py
-│   └── evaluation/
-│       ├── metrics.py
-│       └── synthetic_metrics.py
-└── tests/
-```
-
 ## Installation
 
 Python 3.11 is recommended.

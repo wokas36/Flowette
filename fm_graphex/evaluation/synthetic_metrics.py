@@ -202,8 +202,7 @@ def evaluate_deg_clus_orb_vun(
 
     vun = compute_vun(train_nx, gen_nx, cfg.validity, cfg.wl_iters)
     return {
-        "Deg": deg_mmd,
-        # "Clus": clus_mmd,
+        "Clus": clus_mmd,
         "Orb": orb_mmd,
         "Validity": vun["validity"],
         "Uniqueness": vun["uniqueness"],

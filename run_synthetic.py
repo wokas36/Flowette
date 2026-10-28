@@ -289,7 +289,7 @@ def run(args: argparse.Namespace):
         metrics_path = os.path.join(args.out, f"{args.task}_metrics.json")
         
         print("\nFlowette synthetic", args.task, "evaluation")
-        print(f"Deg MMD: {metrics['Deg']:.6f}")
+        print(f"Clus MMD: {metrics['Clus']:.6f}")
         print(f"Orb MMD: {metrics['Orb']:.6f}")
         print(f"VUN: {metrics['VUN']:.6f}")
         print(f"Validity: {metrics['Validity']:.4f}")
